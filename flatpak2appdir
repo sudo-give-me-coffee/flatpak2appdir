@@ -1,0 +1,109 @@
+#!/bin/bash
+
+HERE="$(dirname "$(readlink -f "${0}")")"
+
+[ "${1}" = "" ] && {
+  echo "You must pass a app id as argument for e.g.:"
+  echo "  sudo ${0} org.gnome.gedit"
+  exit 1
+}
+
+[ "$EUID" -ne 0 ] && {
+  echo "Please run as root:"
+  echo "  sudo ${0} ${1}"
+  exit 1
+}
+
+
+[ ! -f "/var/lib/flatpak/app/${1}/current/active/files/manifest.json" ] && {
+  echo "Error: ${1} not installed on system wide, please run:"
+  echo "  flatpak install --system ${1}"
+  exit 1
+}
+  
+runtime_info=$(cat "/var/lib/flatpak/app/${1}/current/active/files/manifest.json" | grep runtime   \
+                                                                                  | sed 's/ *"//g' \
+                                                                                  | cut -d':' -f2  \
+                                                                                  | rev)
+
+runtime_name=$(echo "${runtime_info}"    | sed -n 1p | cut -c 2- | rev)
+runtime_version=$(echo "${runtime_info}" | sed -n 2p | cut -c 2- | rev)
+  
+app="/var/lib/flatpak/app/${1}/current/active/files/"
+runtime="/var/lib/flatpak/runtime/${runtime_name}/x86_64/${runtime_version}/active/files"
+command="$(cat /var/lib/flatpak/app/${1}/current/active/metadata | grep ^command= | cut -c 9-)"
+image_size=$[ 200 + $(du -ms ${runtime}| sed 's/[[:space:]]/ /g' | cut -d' ' -f1) ]
+
+echo "[ 1/7 ] Create image for store runtime"
+[ ! -f "${runtime_name}_${runtime_version}.img" ] && {
+  echo
+  dd if=/dev/zero of=${runtime_name}_${runtime_version}.img bs=1M count=${image_size}
+  mkfs.ext4 ${runtime_name}_${runtime_version}.img
+  chmod 777 ${runtime_name}_${runtime_version}.img
+  chmod -x  ${runtime_name}_${runtime_version}.img
+}
+
+echo "[ 2/7 ] Mounting runtime image"
+mount_point="$(mktemp -d)"
+sudo mount -o loop,strictatime,nodiratime ${runtime_name}_${runtime_version}.img ${mount_point}
+
+echo "[ 3/7 ] Copying runtime to image"
+[ ! -f "${mount_point}/bin/bash" ] && {
+  sudo mkdir -p ${mount_point}/usr
+  sudo sudo cp -vr ${runtime}/* ${mount_point}/usr
+  sudo ln -s usr/bin   ${mount_point}/bin
+  sudo ln -s usr/lib   ${mount_point}/lib
+  sudo ln -s usr/lib64 ${mount_point}/lib64
+  sudo ln -s usr/etc   ${mount_point}/etc
+  sudo ln -s usr/bin   ${mount_point}/sbin
+  rm -f ${mount_point}/etc/localtime
+  rm -f ${mount_point}/etc/resolv.conf
+  rm -f ${mount_point}/etc/mtab
+  rm -f ${mount_point}/etc/os-release
+  mkdir -p ${mount_point}/app
+  mkdir -p ${mount_point}/proc
+  mkdir -p ${mount_point}/dev
+}
+
+echo "[ 4/7 ] Mounting ${1}"
+mount ${app} ${mount_point}/app -o bind,ro
+
+echo "[ 6/7 ] Starting chroot in ${mount_point}..."
+mount -t proc proc ${mount_point}/proc/
+mkdir -p ${mount_point}/${HOME}
+xhost +local:
+
+echo '#!/bin/bash' > ${mount_point}/AppRun
+echo 'python3 --version' >> ${mount_point}/AppRun
+echo 'export PATH=/app/bin:/usr/bin:${PATH}' >> ${mount_point}/AppRun
+echo 'export LD_LIBRARY_PATH=/app/bin:/app/lib:${LD_LIBRARY_PATH}' >> ${mount_point}/AppRun
+echo 'export GSETTINGS_SCHEMA_DIR=/app/share/glib-2.0/schemas' >> ${mount_point}/AppRun
+echo 'export GI_TYPELIB_PATH=/app/lib/girepository-1.0' >> ${mount_point}/AppRun
+echo '${@}' >> ${mount_point}/AppRun
+chmod +x ${mount_point}/AppRun
+
+echo "[ 7/7 ] Copying used files..."
+touch ${mount_point}/test
+chroot ${mount_point} /AppRun ${command}
+mkdir -p ${1}.AppDir
+find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
+cp -r ${mount_point}/app ${1}.AppDir
+mv ${1}.AppDir/${mount_point}/* ${1}.AppDir/
+rm -rf ${1}.AppDir/tmp
+ln -s usr/bin   ${1}.AppDir/bin
+ln -s usr/lib   ${1}.AppDir/lib
+ln -s usr/lib64 ${1}.AppDir/lib64
+ln -s usr/etc   ${1}.AppDir/etc
+ln -s usr/bin   ${1}.AppDir/sbin
+cp ${HERE}/libunionpreload.so ${1}.AppDir
+cp ${HERE}/start-app.sh ${1}.AppDir
+  
+chmod -R a+rwx ${1}.AppDir/
+
+echo "[ 7/7 ] Finishing..."
+umount ${mount_point}
+umount ${mount_point}/app
+umount ${mount_point}/proc
+umount ${mount_point}
+
+rm -rfv ${mount_point}
