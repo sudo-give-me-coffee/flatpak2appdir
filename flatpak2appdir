@@ -84,7 +84,7 @@ xhost +local:
 echo "[ 7/7 ] Copying used files..."
 command_path="${mount_point}/app/bin/${command}"
 [ "$(cat ${command_path} | head -n1 | cut -c 1-2)" = "#!" ] && {
-  interpreter1=$(cat ${command_path} | head -n1 | cut -c 3-)
+  interpreter=$(cat ${command_path} | head -n1 | cut -c 3-)
 }
 
 export PATH=/app/bin:/usr/bin:${PATH}
