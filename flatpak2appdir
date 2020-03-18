@@ -125,6 +125,8 @@ mv ${1}.AppDir/usr/share/glib-2.0/schemas ${1}.AppDir/usr/share/runtime-schemas
 cp -r ${mount_point}/app/* ${1}.AppDir/usr
 ln -s usr ${1}.AppDir/app
 
+cp ${1}.AppDir/usr/share/applications/${1}.desktop ${1}.AppDir/
+
 chmod -R a+rwx ${1}.AppDir/
 
 echo "[ 7/7 ] Finishing..."
