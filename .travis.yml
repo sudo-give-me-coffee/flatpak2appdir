@@ -36,7 +36,6 @@ script:
   - grep "Exec=.*" ./*.AppDir/*.desktop | head -n 1 | cut -d "=" -f 2 | cut -d " " -f 1 > org.gnome.gedit.AppDir/command # FIXME in flatpak2appdir
   # TODO: Automatically determine and export $VERSION
   - find org.gnome.gedit.AppDir
-  - mv ./org.gnome.gedit.AppDir/start-app.sh ./org.gnome.gedit.AppDir/AppRun # FIXME in flatpak2appdir
   - VERSION=1.0 ./appimagetool-*.AppImage ./*.AppDir # turn AppDir into AppImage
 
 after_script:
