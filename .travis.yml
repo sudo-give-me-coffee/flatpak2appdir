@@ -1,0 +1,52 @@
+language: minimal
+dist: xenial
+
+env:
+  global:
+    - DISPLAY=:99
+
+matrix:
+  include:
+    - name: "Build for x86_64"
+      env: ARCH=x86_64
+
+before_install:
+  - sudo add-apt-repository ppa:alexlarsson/flatpak -y
+  - sudo apt-get update -q
+  - sudo apt-get -y install flatpak xvfb x11-xserver-utils imagemagick
+
+install:
+  - sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  - sudo flatpak remote-add --if-not-exists flathub-beta https://flathub.org/beta-repo/flathub-beta.flatpakrepo
+
+script:
+  - Xvfb :99 -screen 0 800x600x24 >/dev/null 2>&1 &
+  - sudo flatpak install -v --noninteractive flathub org.gnome.gedit # Why is --system needed? Why not --user?
+  - sudo bash -ex ./flatpak2appdir org.gnome.gedit # Why is sudo needed?
+  - ls -lh
+  - wget -c https://github.com/$(wget -q https://github.com/probonopd/go-appimage/releases -O - | grep "appimagetool-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)
+  - chmod +x appimagetool-*.AppImage
+  - find ./*.AppDir -wholename 'usr/share/icons' # FIXME
+  - convert org.gnome.gedit.AppDir/app/share/icons/hicolor/scalable/apps/org.gnome.gedit.svg -resize 128x128 ./org.gnome.gedit.AppDir/org.gnome.gedit.png # FIXME in appimagetool
+  # This Flatpak does not have an 1.0-compliant desktop file, hence we need to patch it on the fly
+  - sed -i -e 's|Text Editor|Gedit|g' org.gnome.gedit.AppDir/app/share/applications/org.gnome.gedit.desktop # FIXME, can we get the real application name from AppStream metainfo?
+  - sed -i -e 's|Keywords\[|X-Keywords\[|g' org.gnome.gedit.AppDir/app/share/applications/org.gnome.gedit.desktop
+  - sed -i -e 's|DBusActivatable|X-DBusActivatable|g' org.gnome.gedit.AppDir/app/share/applications/org.gnome.gedit.desktop
+  - cp org.gnome.gedit.AppDir/app/share/applications/org.gnome.gedit.desktop ./org.gnome.gedit.AppDir/ # FIXME in flatpak2appdir
+  - grep "Exec=.*" ./*.AppDir/*.desktop | head -n 1 | cut -d "=" -f 2 | cut -d " " -f 1 > org.gnome.gedit.AppDir/command # FIXME in flatpak2appdir
+  # TODO: Automatically determine and export $VERSION
+  - find org.gnome.gedit.AppDir
+  - mv ./org.gnome.gedit.AppDir/start-app.sh ./org.gnome.gedit.AppDir/AppRun # FIXME in flatpak2appdir
+  - VERSION=1.0 ./appimagetool-*.AppImage ./*.AppDir # turn AppDir into AppImage
+
+after_script:
+  - killall Xvfb
+
+after_success:
+  - wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
+  - bash upload.sh Gedit*.AppImage*
+  
+branches:
+  except:
+    - # Do not build tags that we create when we upload to GitHub Releases
+    - /^(?i:continuous)/

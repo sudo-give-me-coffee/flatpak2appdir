@@ -50,7 +50,7 @@ sudo mount -o loop,strictatime,nodiratime ${runtime_name}_${runtime_version}.img
 echo "[ 3/7 ] Copying runtime to image"
 [ ! -f "${mount_point}/bin/bash" ] && {
   sudo mkdir -p ${mount_point}/usr
-  sudo sudo cp -vr ${runtime}/* ${mount_point}/usr
+  sudo sudo cp -r ${runtime}/* ${mount_point}/usr
   sudo ln -s usr/bin   ${mount_point}/bin
   sudo ln -s usr/lib   ${mount_point}/lib
   sudo ln -s usr/lib64 ${mount_point}/lib64
@@ -83,7 +83,10 @@ chmod +x ${mount_point}/AppRun
 
 echo "[ 7/7 ] Copying used files..."
 touch ${mount_point}/test
-chroot ${mount_point} /AppRun ${command}
+chroot ${mount_point} /AppRun ${command} &
+APID=$!
+sleep 15
+kill $APID
 mkdir -p ${1}.AppDir
 find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
 cp -r ${mount_point}/app ${1}.AppDir
@@ -101,9 +104,12 @@ echo -n ${command} >> ${1}.AppDir/command
 chmod -R a+rwx ${1}.AppDir/
 
 echo "[ 7/7 ] Finishing..."
-umount ${mount_point}
-umount ${mount_point}/app
-umount ${mount_point}/proc
-umount ${mount_point}
+sleep 1
+sync
+sleep 1
+# umount -l ${mount_point}
+umount -l ${mount_point}/app
+umount -l ${mount_point}/proc
+umount -l ${mount_point}
 
 rm -rfv ${mount_point}
