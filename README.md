@@ -26,7 +26,7 @@ chmod +x flatpak2appdir
 
 5. Run as root:
 ```
-sudo ./atpak2appdir com.example.app
+sudo ./flatpak2appdir com.example.app
 ```
 > Note: to do these steps `flatpak2appdir` will create a `.img` file with the runtime name, you can delete this **after** AppDir creation
 # How to use?
