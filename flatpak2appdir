@@ -84,9 +84,8 @@ chroot ${mount_point} ${command} &
 APID=$!
 sleep 15
 kill $APID
-mkdir -p ${1}.AppDir
+mkdir -p ${1}.AppDir/usr
 find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
-cp -r ${mount_point}/app ${1}.AppDir
 
 [ -f "${1}.AppDir/${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache" ] && {
   cp --parents -r /${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/* ${1}.AppDir
@@ -102,7 +101,11 @@ ln -s usr/bin   ${1}.AppDir/sbin
 cp ${HERE}/libunionpreload.so ${1}.AppDir
 cp ${HERE}/start-app.sh ${1}.AppDir/AppRun
 echo -n ${command} >> ${1}.AppDir/command
-  
+mv ${1}.AppDir/app/share/applications/${1}.desktop ${1}.AppDir
+
+cp -r ${mount_point}/app/* ${1}.AppDir/usr
+ln -s usr ${1}.AppDir/app
+
 chmod -R a+rwx ${1}.AppDir/
 
 echo "[ 7/7 ] Finishing..."
