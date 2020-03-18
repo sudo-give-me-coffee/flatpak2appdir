@@ -2,6 +2,12 @@
 
 HERE="$(dirname "$(readlink -f "${0}")")"
 
+[ "${1}" = "--force-runtime" ] && {
+  shift
+  runtime_name=${1}; shift
+  runtime_version=${1}; shift
+}
+
 [ "${1}" = "" ] && {
   echo "You must pass a app id as argument for e.g.:"
   echo "  sudo ${0} org.gnome.gedit"
@@ -20,14 +26,16 @@ HERE="$(dirname "$(readlink -f "${0}")")"
   echo "  flatpak install --system ${1}"
   exit 1
 }
-  
-runtime_info=$(cat "/var/lib/flatpak/app/${1}/current/active/files/manifest.json" | grep runtime   \
-                                                                                  | sed 's/ *"//g' \
-                                                                                  | cut -d':' -f2  \
-                                                                                  | rev)
 
-runtime_name=$(echo "${runtime_info}"    | sed -n 1p | cut -c 2- | rev)
-runtime_version=$(echo "${runtime_info}" | sed -n 2p | cut -c 2- | rev)
+[ "${runtime_name}" = ""  ] && {
+  runtime_info=$(cat "/var/lib/flatpak/app/${1}/current/active/files/manifest.json" | grep runtime   \
+                                                                                    | sed 's/ *"//g' \
+                                                                                    | cut -d':' -f2  \
+                                                                                    | rev)
+
+  runtime_name=$(echo "${runtime_info}"    | sed -n 1p | cut -c 2- | rev)
+  runtime_version=$(echo "${runtime_info}" | sed -n 2p | cut -c 2- | rev)
+}
   
 app="/var/lib/flatpak/app/${1}/current/active/files/"
 runtime="/var/lib/flatpak/runtime/${runtime_name}/x86_64/${runtime_version}/active/files"
@@ -78,6 +86,7 @@ export PATH=/app/bin:/usr/bin:${PATH}
 export LD_LIBRARY_PATH=/app/bin:/app/lib:${LD_LIBRARY_PATH}
 export GSETTINGS_SCHEMA_DIR=/app/share/glib-2.0/schemas
 export GI_TYPELIB_PATH=/app/lib/girepository-1.0
+export XDG_DATA_DIRS=/app/usr/share/:/usr/share/:"${XDG_DATA_DIRS}"
 touch ${mount_point}/test
 chroot ${mount_point} ${command} &
                         
