@@ -73,23 +73,25 @@ mount -t proc proc ${mount_point}/proc/
 mkdir -p ${mount_point}/${HOME}
 xhost +local:
 
-echo '#!/bin/bash' > ${mount_point}/AppRun
-echo 'export PATH=/app/bin:/usr/bin:${PATH}' >> ${mount_point}/AppRun
-echo 'export LD_LIBRARY_PATH=/app/bin:/app/lib:${LD_LIBRARY_PATH}' >> ${mount_point}/AppRun
-echo 'export GSETTINGS_SCHEMA_DIR=/app/share/glib-2.0/schemas' >> ${mount_point}/AppRun
-echo 'export GI_TYPELIB_PATH=/app/lib/girepository-1.0' >> ${mount_point}/AppRun
-echo '${@}' >> ${mount_point}/AppRun
-chmod +x ${mount_point}/AppRun
-
 echo "[ 7/7 ] Copying used files..."
+export PATH=/app/bin:/usr/bin:${PATH}
+export LD_LIBRARY_PATH=/app/bin:/app/lib:${LD_LIBRARY_PATH}
+export GSETTINGS_SCHEMA_DIR=/app/share/glib-2.0/schemas
+export GI_TYPELIB_PATH=/app/lib/girepository-1.0
 touch ${mount_point}/test
-chroot ${mount_point} /AppRun ${command} &
+chroot ${mount_point} ${command} &
+                        
 APID=$!
 sleep 15
 kill $APID
 mkdir -p ${1}.AppDir
 find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
 cp -r ${mount_point}/app ${1}.AppDir
+
+[ -f "${1}.AppDir/${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache" ] && {
+  cp --parents -r /${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/* ${1}.AppDir
+}
+
 mv ${1}.AppDir/${mount_point}/* ${1}.AppDir/
 rm -rf ${1}.AppDir/tmp
 ln -s usr/bin   ${1}.AppDir/bin
@@ -98,7 +100,7 @@ ln -s usr/lib64 ${1}.AppDir/lib64
 ln -s usr/etc   ${1}.AppDir/etc
 ln -s usr/bin   ${1}.AppDir/sbin
 cp ${HERE}/libunionpreload.so ${1}.AppDir
-cp ${HERE}/start-app.sh ${1}.AppDir
+cp ${HERE}/start-app.sh ${1}.AppDir/AppRun
 echo -n ${command} >> ${1}.AppDir/command
   
 chmod -R a+rwx ${1}.AppDir/

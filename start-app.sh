@@ -28,11 +28,6 @@ export LIBRARY_PATH="$LIBRARY_PATH":"${LD_LIBRARY_PATH}"
 export GSETTINGS_SCHEMA_DIR="$HERE/app/share/glib-2.0/schemas/":"${GSETTINGS_SCHEMA_DIR}"
 export GI_TYPELIB_PATH=$HERE/app/lib/girepository-1.0
 
-GDK_LIB_PATH=$(dirname $(ldconfig -p | grep libgdk_pixbuf-2.0.so.0 | cut -d'>' -f2 | head -n1))
-GKD_VERSION=$(ls ${GDK_LIB_PATH}/gdk-pixbuf-2.0/ | head -n1)
-GKD_CACHE_PATH="${GDK_LIB_PATH}/gdk-pixbuf-2.0/${GKD_VERSION}/loaders.cache"
-export GDK_PIXBUF_MODULE_FILE="${GKD_CACHE_PATH}"
-
 export XDG_DATA_DIRS="${HERE}"/usr/share/:"${XDG_DATA_DIRS}"
 export TCL_LIBRARY="${HERE}"/usr/share/tcltk/tcl8.6:$TCL_LIBRARY:$TK_LIBRARY
 export TK_LIBRARY="${HERE}"/usr/share/tcltk/tk8.6:$TK_LIBRARY:$TCL_LIBRARY
