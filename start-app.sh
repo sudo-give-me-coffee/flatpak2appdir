@@ -25,7 +25,7 @@ export LIBRARY_PATH="$HERE/usr/lib/x86_64-linux-gnu/pulseaudio":$LIBRARY_PATH
 export LIBRARY_PATH="$HERE/usr/lib/x86_64-linux-gnu/alsa-lib":$LIBRARY_PATH
 export LIBRARY_PATH="$LIBRARY_PATH":"${LD_LIBRARY_PATH}"
 
-export GSETTINGS_SCHEMA_DIR="$HERE/app/share/glib-2.0/schemas/":"${GSETTINGS_SCHEMA_DIR}"
+export GSETTINGS_SCHEMA_DIR="$HERE/app/share/glib-2.0/schemas/":"$HERE/app/share/runtime-schemas/":"${GSETTINGS_SCHEMA_DIR}"
 export GI_TYPELIB_PATH=$HERE/app/lib/girepository-1.0
 
 export XDG_DATA_DIRS="${HERE}"/usr/share/:"${XDG_DATA_DIRS}"
@@ -33,4 +33,9 @@ export TCL_LIBRARY="${HERE}"/usr/share/tcltk/tcl8.6:$TCL_LIBRARY:$TK_LIBRARY
 export TK_LIBRARY="${HERE}"/usr/share/tcltk/tk8.6:$TK_LIBRARY:$TCL_LIBRARY
 
 MAIN="$HERE/app/bin/"$(cat "${HERE}/command")
-exec "${HERE}/lib64/ld-linux-x86-64.so.2" --inhibit-cache --library-path "${LIBRARY_PATH}" "${MAIN}" "$@"
+
+[ -f "$HERE/interpreter" ] && {
+  MAIN="$HERE/$(cat ${HERE}/interpreter) ${MAIN}"
+}
+
+exec "${HERE}/lib64/ld-linux-x86-64.so.2" --inhibit-cache --library-path "${LIBRARY_PATH}" ${MAIN} "$@"
