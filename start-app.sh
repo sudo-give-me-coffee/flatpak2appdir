@@ -2,6 +2,8 @@
 
 HERE="$(dirname "$(readlink -f "${0}")")"
 
+unset GTK_MODULES
+
 export UNION_PRELOAD="${HERE}"
 export LD_PRELOAD="${HERE}/libunionpreload.so"
 
