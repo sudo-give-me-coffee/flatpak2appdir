@@ -74,7 +74,6 @@ mkdir -p ${mount_point}/${HOME}
 xhost +local:
 
 echo '#!/bin/bash' > ${mount_point}/AppRun
-echo 'python3 --version' >> ${mount_point}/AppRun
 echo 'export PATH=/app/bin:/usr/bin:${PATH}' >> ${mount_point}/AppRun
 echo 'export LD_LIBRARY_PATH=/app/bin:/app/lib:${LD_LIBRARY_PATH}' >> ${mount_point}/AppRun
 echo 'export GSETTINGS_SCHEMA_DIR=/app/share/glib-2.0/schemas' >> ${mount_point}/AppRun
@@ -97,6 +96,7 @@ ln -s usr/etc   ${1}.AppDir/etc
 ln -s usr/bin   ${1}.AppDir/sbin
 cp ${HERE}/libunionpreload.so ${1}.AppDir
 cp ${HERE}/start-app.sh ${1}.AppDir
+echo -n ${command} >> ${1}.AppDir/command
   
 chmod -R a+rwx ${1}.AppDir/
 
