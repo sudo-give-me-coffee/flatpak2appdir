@@ -2,11 +2,12 @@ language: minimal
 dist: xenial
 
 env:
-  - ID=fr.natron.Natron
-  - ID=org.gnome.gedit
   global:
     - DISPLAY=:99
-
+  jobs:
+    - ID=fr.natron.Natron
+    - ID=org.gnome.gedit
+    
 matrix:
   include:
     - name: "Build for x86_64"
