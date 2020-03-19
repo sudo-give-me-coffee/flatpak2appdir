@@ -8,6 +8,8 @@ env:
   jobs:
     - ID=fr.natron.Natron
     - ID=org.gnome.gedit
+    - ID=com.wps.Office
+    - ID=org.videolan.VLC
 
 before_install:
   - sudo add-apt-repository ppa:alexlarsson/flatpak -y
