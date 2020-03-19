@@ -109,6 +109,14 @@ find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*
   cp --parents -r /${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/* ${1}.AppDir
 }
 
+[ -d "${1}.AppDir/${mount_point}/usr/lib/python3.7/" ] && {
+  cp --parents /${mount_point}/usr/lib/python3.7/__pycache__/struct.cpython-37.pyc ${1}.AppDir
+  cp --parents /${mount_point}/usr/lib/python3.7/__pycache__/copy.cpython-37.pyc ${1}.AppDir
+  cp --parents /${mount_point}/usr/lib/python3.7/struct.py ${1}.AppDir
+  cp --parents /${mount_point}/usr/lib/python3.7/lib-dynload/_struct.cpython-37m-x86_64-linux-gnu.so ${1}.AppDir
+  cp --parents /${mount_point}/usr/lib/python3.7/copy.py ${1}.AppDir
+}
+
 [ -d "${1}.AppDir/${mount_point}/usr/lib/python3.7/encodings" ] && {
   cp --parents -r /${mount_point}/usr/lib/python3.7/encodings/* ${1}.AppDir
 }
