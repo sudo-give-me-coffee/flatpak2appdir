@@ -10,6 +10,7 @@ env:
     - ID=com.wps.Office
     - ID=org.videolan.VLC
     - ID=com.github.maoschanz.drawing
+    - ID=com.github.themix_project.Oomox
 
 before_install:
   - sudo add-apt-repository ppa:alexlarsson/flatpak -y
