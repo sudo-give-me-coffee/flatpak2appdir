@@ -9,3 +9,4 @@ sudo ./flatpak2appdir org.gnome.gedit
 export VERSION=$(flatpak info org.gnome.gedit | sed 's/^[[:space:]]*//'  | grep -i ^Version: | cut -c 10-)
 
 ./appimagetool-*.AppImage ./*.AppDir
+rm ./appimagetool-*.AppImage
