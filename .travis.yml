@@ -4,11 +4,12 @@ dist: xenial
 env:
   global:
     - DISPLAY=:99
-
-matrix:
-  include:
-    - name: "Build for x86_64"
-      env: ARCH=x86_64
+    - ARCH=x86_64
+  jobs:
+    - ID=fr.natron.Natron
+    - ID=org.gnome.gedit
+    - ID=com.wps.Office
+    - ID=org.videolan.VLC
 
 before_install:
   - sudo add-apt-repository ppa:alexlarsson/flatpak -y
@@ -16,22 +17,13 @@ before_install:
   - sudo apt-get -y install flatpak xvfb x11-xserver-utils imagemagick
   - wget -c https://github.com/$(wget -q https://github.com/probonopd/go-appimage/releases -O - | grep "appimagetool-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)
 
-install:
-  - sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  - sudo flatpak remote-add --if-not-exists flathub-beta https://flathub.org/beta-repo/flathub-beta.flatpakrepo
-
 script:
   - Xvfb :99 -screen 0 800x600x24 >/dev/null 2>&1 &
   - chmod +x *
-  - ./build-gedit.sh
-
+  - bash -ex ./build-appimage.sh $ID
 
 after_script:
   - killall Xvfb
-
-after_success:
-  - wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
-  - bash upload.sh *.AppImage*
   
 branches:
   except:
