@@ -6,7 +6,7 @@ env:
     - DISPLAY=:99
     - ARCH=x86_64
   jobs:
-    - ID=fr.natron.Natron
+    - ID=com.github.maoschanz.drawing
     - ID=org.gnome.gedit
     - ID=com.wps.Office
     - ID=org.videolan.VLC
