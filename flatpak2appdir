@@ -142,6 +142,9 @@ sed -i -e 's|Keywords|X-Keywords|g' ${1}.AppDir/${1}.desktop
 cp -f /${mount_point}/usr/share/mime/mime.cache ${1}.AppDir/usr/share/mime/mime.cache
 
 rm -rf ${1}.AppDir/usr/share/locale
+rm -rf ${1}.AppDir/usr/share/fonts
+rm -rf ${1}.AppDir/usr/cache
+
 mkdir -p ${1}.AppDir/usr/share/locale
 
 for locale in /var/lib/flatpak/runtime/${1}.Locale/x86_64/stable/active/files/*/; do
