@@ -1,9 +1,5 @@
 #!/bin/bash
 
-if [ -z "$ID" ] ; then
-  export ID="org.gnome.gedit"
-fi
-
 sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 sudo flatpak install -v --noninteractive --system flathub $ID
 sudo ./flatpak2appdir $ID
