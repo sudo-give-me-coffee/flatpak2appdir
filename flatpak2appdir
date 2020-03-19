@@ -92,12 +92,16 @@ export LD_LIBRARY_PATH=/app/bin:/app/lib:${LD_LIBRARY_PATH}
 export GSETTINGS_SCHEMA_DIR=/app/share/glib-2.0/schemas
 export GI_TYPELIB_PATH=/app/lib/girepository-1.0
 export XDG_DATA_DIRS=/app/usr/share/:/usr/share/:"${XDG_DATA_DIRS}"
+export NO_AT_BRIDGE=1
+export $(dbus-launch)
+  
 touch ${mount_point}/test
 chroot ${mount_point} ${command} &
                         
 APID=$!
 sleep 15
 kill $APID
+kill $DBUS_SESSION_BUS_PID
 mkdir -p ${1}.AppDir/usr
 find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
 
