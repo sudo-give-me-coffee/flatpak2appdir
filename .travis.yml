@@ -22,7 +22,8 @@ install:
 script:
   - Xvfb :99 -screen 0 800x600x24 >/dev/null 2>&1 &
   - sudo flatpak install -v --noninteractive flathub org.gnome.gedit # Why is --system needed? Why not --user?
-  - sudo bash -ex ./flatpak2appdir org.gnome.gedit # Why is sudo needed?
+  - chmod +x /flatpak2appdir
+  - ./flatpak2appdir org.gnome.gedit # Why is sudo needed?
   - ls -lh
   - wget -c https://github.com/$(wget -q https://github.com/probonopd/go-appimage/releases -O - | grep "appimagetool-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)
   - chmod +x appimagetool-*.AppImage
