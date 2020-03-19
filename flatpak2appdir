@@ -117,7 +117,7 @@ ln -s usr/lib64 ${1}.AppDir/lib64
 ln -s usr/etc   ${1}.AppDir/etc
 ln -s usr/bin   ${1}.AppDir/sbin
 cp ${HERE}/libunionpreload.so ${1}.AppDir
-cp ${HERE}/start-app.sh ${1}.AppDir/AppRun
+cp ${HERE}/AppRun ${1}.AppDir
 
 [ ! -z "${interpreter}" ] && {
   echo -n ${interpreter} >> ${1}.AppDir/interpreter
