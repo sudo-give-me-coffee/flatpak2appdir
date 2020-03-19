@@ -18,14 +18,10 @@ before_install:
 script:
   - Xvfb :99 -screen 0 800x600x24 >/dev/null 2>&1 &
   - chmod +x *
-  - ./build-appimage.sh $ID
+  - bash -ex ./build-appimage.sh $ID
 
 after_script:
   - killall Xvfb
-
-after_success:
-  - wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
-  - bash upload.sh *.AppImage*
   
 branches:
   except:
