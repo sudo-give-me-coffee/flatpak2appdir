@@ -135,6 +135,8 @@ ln -s app/share/app-info/icons/flatpak/128x128/${1}.png ${1}.AppDir/
 sed -i -e 's|DBusActivatable|X-DBusActivatable|g' ${1}.AppDir/${1}.desktop
 sed -i -e 's|Keywords|X-Keywords|g' ${1}.AppDir/${1}.desktop
 
+cp -f /${mount_point}/usr/share/mime/mime.cache ${1}.AppDir/usr/share/mime/mime.cache
+
 chmod -R a+rwx ${1}.AppDir/
 
 echo "[ 7/7 ] Finishing..."
