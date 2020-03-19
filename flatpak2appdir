@@ -105,6 +105,10 @@ find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*
   cp --parents -r /${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/* ${1}.AppDir
 }
 
+[ -d "${1}.AppDir/${mount_point}/usr/lib/python3.7/encodings" ] && {
+  cp --parents -r /${mount_point}/usr/lib/python3.7/encodings/* ${1}.AppDir
+}
+
 mv ${1}.AppDir/${mount_point}/* ${1}.AppDir/
 rm -rf ${1}.AppDir/tmp
 ln -s usr/bin   ${1}.AppDir/bin
@@ -126,6 +130,7 @@ cp -r ${mount_point}/app/* ${1}.AppDir/usr
 ln -s usr ${1}.AppDir/app
 
 cp ${1}.AppDir/usr/share/applications/${1}.desktop ${1}.AppDir/
+ln -s app/share/app-info/icons/flatpak/128x128/${1}.png ${1}.AppDir/
 
 chmod -R a+rwx ${1}.AppDir/
 
