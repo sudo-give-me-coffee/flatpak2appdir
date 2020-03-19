@@ -73,6 +73,8 @@ echo "[ 3/7 ] Copying runtime to image"
   mkdir -p ${mount_point}/dev
 }
 
+cp /etc/resolv.conf ${mount_point}/etc/resolv.conf
+
 echo "[ 4/7 ] Mounting ${1}"
 mount ${app} ${mount_point}/app -o bind,ro
 
