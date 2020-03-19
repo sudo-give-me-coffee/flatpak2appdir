@@ -4,14 +4,10 @@ dist: xenial
 env:
   global:
     - DISPLAY=:99
+    - ARCH=x86_64
   jobs:
     - ID=fr.natron.Natron
     - ID=org.gnome.gedit
-    
-matrix:
-  include:
-    - name: "Build for x86_64"
-      env: ARCH=x86_64
 
 before_install:
   - sudo add-apt-repository ppa:alexlarsson/flatpak -y
