@@ -14,6 +14,7 @@ before_install:
   - sudo add-apt-repository ppa:alexlarsson/flatpak -y
   - sudo apt-get update -q
   - sudo apt-get -y install flatpak xvfb x11-xserver-utils imagemagick
+  - wget -c https://github.com/$(wget -q https://github.com/probonopd/go-appimage/releases -O - | grep "appimagetool-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)
 
 install:
   - sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -21,22 +22,16 @@ install:
 
 script:
   - Xvfb :99 -screen 0 800x600x24 >/dev/null 2>&1 &
-  - sudo flatpak install -v --noninteractive flathub org.gnome.gedit # Why is --system needed? Why not --user?
-  - chmod +x ./flatpak2appdir
-  - ./flatpak2appdir org.gnome.gedit # Why is sudo needed?
-  - ls -lh
-  - wget -c https://github.com/$(wget -q https://github.com/probonopd/go-appimage/releases -O - | grep "appimagetool-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)
-  - chmod +x appimagetool-*.AppImage
-  # TODO: Automatically determine and export $VERSION
-  - find org.gnome.gedit.AppDir
-  - VERSION=1.0 ./appimagetool-*.AppImage ./*.AppDir # turn AppDir into AppImage
+  - chmod +x *
+  - ./build-gedit.sh
+
 
 after_script:
   - killall Xvfb
 
 after_success:
   - wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
-  - bash upload.sh Gedit*.AppImage*
+  - bash upload.sh *.AppImage*
   
 branches:
   except:
