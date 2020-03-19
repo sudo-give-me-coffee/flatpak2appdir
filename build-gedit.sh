@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Retry if 503 error occurs, is a ostre bug
-sudo flatpak install -v --noninteractive --system flathub org.gnome.gedit.Locale || {
-  sudo flatpak install -v --noninteractive --system flathub org.gnome.gedit.Locale
-}
-sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-sudo flatpak install -v --noninteractive --system flathub org.gnome.gedit
-sudo ./flatpak2appdir org.gnome.gedit
+if [ -z $ID ] ; then
+  export ID="org.gnome.gedit"
+fi
 
-export VERSION=$(LANG=en flatpak info org.gnome.gedit | sed 's/^[[:space:]]*//'  | grep -i ^Version: | cut -c 10-)
+sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+sudo flatpak install -v --noninteractive --system flathub $ID
+sudo ./flatpak2appdir $ID
+
+export VERSION=$(LANG=en flatpak info $ID | sed 's/^[[:space:]]*//'  | grep -i ^Version: | cut -c 10-)
 
 ./appimagetool-*.AppImage ./*.AppDir
 rm ./appimagetool-*.AppImage
