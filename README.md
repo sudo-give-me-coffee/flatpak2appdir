@@ -41,6 +41,6 @@ In general, about 8 to 10 MB, the resulting AppDir when and if sanitized and com
 This is a PoC, so it has a large list of missing features:
 - [ ] Find executable dinamically (currently generated AppRun only looks at /app/bin)
 - [x] Support non binary apps
-- [ ] Enable `dconf` and `dbus` during test phase
+- [x] Enable `dconf` and `dbus` during test phase
 - [ ] Support to apps that depends of libexecs but doesn't load them automatically
-- [ ] Support no required `runtimes`
+- [x] Support no required `runtimes`
