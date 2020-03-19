@@ -2,6 +2,8 @@ language: minimal
 dist: xenial
 
 env:
+  - ID=fr.natron.Natron
+  - ID=org.gnome.gedit
   global:
     - DISPLAY=:99
 
