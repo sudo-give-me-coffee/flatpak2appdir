@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -z $ID ] ; then
+if [ -z "$ID" ] ; then
   export ID="org.gnome.gedit"
 fi
 
