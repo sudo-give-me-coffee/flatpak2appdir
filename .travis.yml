@@ -14,6 +14,7 @@ before_install:
   - sudo add-apt-repository ppa:alexlarsson/flatpak -y
   - sudo apt-get update -q
   - sudo apt-get -y install flatpak xvfb x11-xserver-utils imagemagick
+  - wget -c https://github.com/$(wget -q https://github.com/probonopd/go-appimage/releases -O - | grep "appimagetool-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)
 
 install:
   - sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -21,8 +22,7 @@ install:
 
 script:
   - Xvfb :99 -screen 0 800x600x24 >/dev/null 2>&1 &
-  - chmod +x ./flatpak2appdir
-  - chmod +x ./build-gedit.sh
+  - chmod +x *
   - ./build-gedit.sh
 
 
