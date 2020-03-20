@@ -1,0 +1,5 @@
+#!/bin/bash
+
+CURRENT_DIR="$(dirname "$(readlink -f "${0}")")"
+
+exec "${HERE}/lib64/ld-linux-x86-64.so.2" --inhibit-cache --library-path "${LIBRARY_PATH}" "${CURRENT_DIR}"/$(basename ${0}).orig "$@"
