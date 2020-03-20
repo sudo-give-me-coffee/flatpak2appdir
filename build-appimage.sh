@@ -9,6 +9,7 @@ sudo flatpak install -v --noninteractive --system flathub $1
 sudo ./flatpak2appdir $1
 
 export VERSION=$(LANG=en flatpak info $ID | sed 's/^[[:space:]]*//'  | grep -i ^Version: | cut -c 10-)
-
+DESKTOPFILENAME=$(ls ./*.AppDir/*.desktop | cut -d / -f 3)
+./appimagetool-*.AppImage -s deploy ./*.AppDir/usr/share/applications/$DESKTOPFILENAME
 ./appimagetool-*.AppImage ./*.AppDir
 rm ./appimagetool-*.AppImage
