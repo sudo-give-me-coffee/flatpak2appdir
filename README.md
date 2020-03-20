@@ -42,5 +42,5 @@ This is a PoC, so it has a large list of missing features:
 - [ ] Find executable dinamically (currently generated AppRun only looks at /app/bin)
 - [x] Support non binary apps
 - [x] Enable `dconf` and `dbus` during test phase
-- [ ] Support to apps that depends of libexecs but doesn't load them automatically
+- [x] Support to apps that depends of libexecs but doesn't load them automatically
 - [x] Support no required `runtimes`
