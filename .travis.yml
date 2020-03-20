@@ -8,7 +8,7 @@ env:
   jobs:
     - ID=org.gnome.gedit
     - ID=com.wps.Office
-    - ID=org.videolan.VLC
+    - ID=com.github.calo001.fondo
     - ID=com.github.maoschanz.drawing
     - ID=com.github.themix_project.Oomox
 
