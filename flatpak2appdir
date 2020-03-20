@@ -93,7 +93,7 @@ export PATH=/app/bin:/usr/bin:${PATH}
 export LD_LIBRARY_PATH=/app/bin:/app/lib:${LD_LIBRARY_PATH}
 export GSETTINGS_SCHEMA_DIR=/app/share/glib-2.0/schemas
 export GI_TYPELIB_PATH=/app/lib/girepository-1.0
-export XDG_DATA_DIRS=/app/usr/share/:/usr/share/:"${XDG_DATA_DIRS}"
+export XDG_DATA_DIRS=/app/share/:/usr/share/:"${XDG_DATA_DIRS}"
 export NO_AT_BRIDGE=1
 export $(dbus-launch)
   
