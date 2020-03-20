@@ -106,6 +106,7 @@ kill $APID
 kill $DBUS_SESSION_BUS_PID
 mkdir -p ${1}.AppDir/usr
 find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
+find ${mount_point} -mindepth 3 -path '*/app/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh # Ensure that all of /app is included
 
 [ -f "${1}.AppDir/${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache" ] && {
   cp --parents -r /${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/* ${1}.AppDir
