@@ -8,6 +8,11 @@ HERE="$(dirname "$(readlink -f "${0}")")"
   runtime_version=${1}; shift
 }
 
+[[ "${1}" == "--libexec="* ]] && {
+  libexecs=($(echo ${1} | cut -c 11- | sed "s/,/\n/g"))
+  shift
+}
+
 [ "${1}" = "" ] && {
   echo "You must pass a app id as argument for e.g.:"
   echo "  sudo ${0} org.gnome.gedit"
@@ -98,6 +103,14 @@ export NO_AT_BRIDGE=1
 export $(dbus-launch)
   
 touch ${mount_point}/test
+
+for lib in ${libexecs[@]}; do
+  chroot ${mount_point} /usr/libexec/${lib} &
+  APID=$!
+  sleep 2
+  kill $APID
+done
+
 chroot ${mount_point} ${command} &
                         
 APID=$!
@@ -166,6 +179,12 @@ done
   echo -e "\n${theme_string}\n" >> "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk.css"
   echo -e "\n${theme_string}\n" >> "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk-dark.css"
 }
+
+for lib in ${libexecs[@]}; do
+  echo $lib
+  mv ${1}.AppDir/usr/libexec/${lib} ${1}.AppDir/usr/libexec/${lib}.orig
+  cp ${HERE}/bin-wrap ${1}.AppDir/usr/libexec/${lib}
+done
 
 chmod -R a+rwx ${1}.AppDir/
 
