@@ -161,6 +161,12 @@ for locale in /var/lib/flatpak/runtime/${1}.Locale/x86_64/stable/active/files/*/
   cp -rf $locale/share/*  ${1}.AppDir/usr/share/locale
 done
 
+[ -f "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk.css" ] && {
+  theme_string=".titlebar { border-radius: 0; } decoration { border-radius: 0; box-shadow: none; margin:0; border: 1px solid @theme_bg_color;}"
+  echo -e "\n${theme_string}\n" >> "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk.css"
+  echo -e "\n${theme_string}\n" >> "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk-dark.css"
+}
+
 chmod -R a+rwx ${1}.AppDir/
 
 echo "[ 7/7 ] Finishing..."
