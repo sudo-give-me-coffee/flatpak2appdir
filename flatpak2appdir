@@ -19,21 +19,14 @@ HERE="$(dirname "$(readlink -f "${0}")")"
   exit 1
 }
 
-[ "$EUID" -ne 0 ] && {
-  echo "Please run as root:"
-  echo "  sudo ${0} ${1}"
-  exit 1
-}
-
-
-[ ! -f "/var/lib/flatpak/app/${1}/current/active/files/manifest.json" ] && {
-  echo "Error: ${1} not installed on system wide, please run:"
-  echo "  flatpak install --system ${1}"
+[ ! -f "${HOME}/.local/share/flatpak/app/${1}/current/active/files/manifest.json" ] && {
+  echo "Error: ${1} not installed for this user, please run:"
+  echo "  flatpak install --user ${1}"
   exit 1
 }
 
 [ "${runtime_name}" = ""  ] && {
-  runtime_info=$(cat "/var/lib/flatpak/app/${1}/current/active/files/manifest.json" | grep runtime   \
+  runtime_info=$(cat "${HOME}/.local/share/flatpak/app/${1}/current/active/files/manifest.json" | grep runtime   \
                                                                                     | sed 's/ *"//g' \
                                                                                     | cut -d':' -f2  \
                                                                                     | rev)
@@ -42,9 +35,9 @@ HERE="$(dirname "$(readlink -f "${0}")")"
   runtime_version=$(echo "${runtime_info}" | sed -n 2p | cut -c 2- | rev)
 }
   
-app="/var/lib/flatpak/app/${1}/current/active/files/"
-runtime="/var/lib/flatpak/runtime/${runtime_name}/x86_64/${runtime_version}/active/files"
-command="$(cat /var/lib/flatpak/app/${1}/current/active/metadata | grep ^command= | cut -c 9-)"
+app="${HOME}/.local/share/flatpak/app/${1}/current/active/files/"
+runtime="${HOME}/.local/share/flatpak/runtime/${runtime_name}/x86_64/${runtime_version}/active/files"
+command="$(cat $HOME/.local/share/flatpak/app/${1}/current/active/metadata | grep ^command= | cut -c 9-)"
 image_size=$[ 200 + $(du -ms ${runtime}| sed 's/[[:space:]]/ /g' | cut -d' ' -f1) ]
 
 echo "[ 1/7 ] Create image for store runtime"
@@ -170,7 +163,7 @@ rm -rf ${1}.AppDir/usr/cache
 
 mkdir -p ${1}.AppDir/usr/share/locale
 
-for locale in /var/lib/flatpak/runtime/${1}.Locale/x86_64/stable/active/files/*/; do
+for locale in ${HOME}/.local/share/flatpak/runtime/${1}.Locale/x86_64/stable/active/files/*/; do
   cp -rf $locale/share/*  ${1}.AppDir/usr/share/locale
 done
 
