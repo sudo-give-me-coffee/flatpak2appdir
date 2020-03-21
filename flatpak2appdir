@@ -98,7 +98,7 @@ export $(dbus-launch)
 touch ${mount_point}/test
 
 for lib in ${libexecs[@]}; do
-  chroot ${mount_point} /usr/libexec/${lib} &
+  chroot --userspec=1000:1000 ${mount_point} /usr/libexec/${lib} &
   APID=$!
   sleep 2
   kill $APID
@@ -186,8 +186,8 @@ sleep 1
 sync
 sleep 1
 # umount -l ${mount_point}
-umount -l ${mount_point}/app
-umount -l ${mount_point}/proc
-umount -l ${mount_point}
+sudo umount -l ${mount_point}/app
+sudo umount -l ${mount_point}/proc
+sudo umount -l ${mount_point}
 
 rm -rfv ${mount_point}
