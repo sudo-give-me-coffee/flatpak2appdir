@@ -62,23 +62,23 @@ echo "[ 3/7 ] Copying runtime to image"
   sudo ln -s usr/lib64 ${mount_point}/lib64
   sudo ln -s usr/etc   ${mount_point}/etc
   sudo ln -s usr/bin   ${mount_point}/sbin
-  rm -f ${mount_point}/etc/localtime
-  rm -f ${mount_point}/etc/resolv.conf
-  rm -f ${mount_point}/etc/mtab
-  rm -f ${mount_point}/etc/os-release
-  mkdir -p ${mount_point}/app
-  mkdir -p ${mount_point}/proc
-  mkdir -p ${mount_point}/dev
+  sudo rm -f ${mount_point}/etc/localtime
+  sudo rm -f ${mount_point}/etc/resolv.conf
+  sudo rm -f ${mount_point}/etc/mtab
+  sudo rm -f ${mount_point}/etc/os-release
+  sudo mkdir -p ${mount_point}/app
+  sudo mkdir -p ${mount_point}/proc
+  sudo mkdir -p ${mount_point}/dev
 }
 
-cp /etc/resolv.conf ${mount_point}/etc/resolv.conf
+sudo cp /etc/resolv.conf ${mount_point}/etc/resolv.conf
 
 echo "[ 4/7 ] Mounting ${1}"
-mount ${app} ${mount_point}/app -o bind,ro
+sudo mount ${app} ${mount_point}/app -o bind,ro
 
 echo "[ 6/7 ] Starting chroot in ${mount_point}..."
-mount -t proc proc ${mount_point}/proc/
-mkdir -p ${mount_point}/${HOME}
+sudo mount -t proc proc ${mount_point}/proc/
+sudo mkdir -p ${mount_point}/${HOME}
 xhost +local:
 
 echo "[ 7/7 ] Copying used files..."
@@ -98,18 +98,18 @@ export $(dbus-launch)
 touch ${mount_point}/test
 
 for lib in ${libexecs[@]}; do
-  chroot --userspec=1000:1000 ${mount_point} /usr/libexec/${lib} &
+  sduo chroot --userspec=1000:1000 ${mount_point} /usr/libexec/${lib} &
   APID=$!
   sleep 2
   kill $APID
 done
 
-chroot ${mount_point} ${command} &
+sudo chroot --userspec=1000:1000 ${mount_point} ${command} &
                         
 APID=$!
 sleep 15
-kill $APID
-kill $DBUS_SESSION_BUS_PID
+sudo kill -9 $APID
+sudo kill -9 $DBUS_SESSION_BUS_PID
 mkdir -p ${1}.AppDir/usr
 find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
 
