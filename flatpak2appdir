@@ -95,10 +95,10 @@ export XDG_DATA_DIRS=/app/share/:/usr/share/:"${XDG_DATA_DIRS}"
 export NO_AT_BRIDGE=1
 export $(dbus-launch)
   
-touch ${mount_point}/test
+sudo touch ${mount_point}/test
 
 for lib in ${libexecs[@]}; do
-  sduo chroot --userspec=1000:1000 ${mount_point} /usr/libexec/${lib} &
+  sudo chroot --userspec=1000:1000 ${mount_point} /usr/libexec/${lib} &
   APID=$!
   sleep 2
   kill $APID
