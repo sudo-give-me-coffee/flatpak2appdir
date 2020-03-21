@@ -6,7 +6,7 @@ sudo flatpak install -v --noninteractive --system flathub $1.Locale || {
   sudo flatpak install -v --noninteractive --system flathub $1.Locale || true
 }
 flatpak install -v --noninteractive --user flathub $1
-./flatpak2appdir $1
+bash -ex flatpak2appdir $1
 
 export VERSION=$(LANG=en flatpak info $ID | sed 's/^[[:space:]]*//'  | grep -i ^Version: | cut -c 10-)
 
