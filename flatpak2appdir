@@ -9,7 +9,7 @@ HERE="$(dirname "$(readlink -f "${0}")")"
 }
 
 [[ "${1}" == "--libexec="* ]] && {
-  libexecs=($(echo ${1} | cut -c 11- | sed "s/,/\n/g"))
+  libexecs=($(echo "${1}" | cut -c 11- | sed "s/,/\n/g"))
   shift
 }
 
@@ -44,54 +44,54 @@ HERE="$(dirname "$(readlink -f "${0}")")"
   
 app="/var/lib/flatpak/app/${1}/current/active/files/"
 runtime="/var/lib/flatpak/runtime/${runtime_name}/x86_64/${runtime_version}/active/files"
-command="$(cat /var/lib/flatpak/app/${1}/current/active/metadata | grep ^command= | cut -c 9-)"
-image_size=$[ 200 + $(du -ms ${runtime}| sed 's/[[:space:]]/ /g' | cut -d' ' -f1) ]
+command="$(cat /var/lib/flatpak/app/"${1}"/current/active/metadata | grep ^command= | cut -c 9-)"
+image_size=$(( 200 + $(du -ms "${runtime}"| sed 's/[[:space:]]/ /g' | cut -d' ' -f1) ))
 
 echo "[ 1/7 ] Create image for store runtime"
 [ ! -f "${runtime_name}_${runtime_version}.img" ] && {
   echo
-  dd if=/dev/zero of=${runtime_name}_${runtime_version}.img bs=1M count=${image_size}
-  mkfs.ext4 ${runtime_name}_${runtime_version}.img
-  chmod 777 ${runtime_name}_${runtime_version}.img
-  chmod -x  ${runtime_name}_${runtime_version}.img
+  dd if=/dev/zero of="${runtime_name}"_"${runtime_version}".img bs=1M count="${image_size}"
+  mkfs.ext4 "${runtime_name}"_"${runtime_version}".img
+  chmod 777 "${runtime_name}"_"${runtime_version}".img
+  chmod -x  "${runtime_name}"_"${runtime_version}".img
 }
 
 echo "[ 2/7 ] Mounting runtime image"
 mount_point="$(mktemp -d)"
-sudo mount -o loop,strictatime,nodiratime ${runtime_name}_${runtime_version}.img ${mount_point}
+sudo mount -o loop,strictatime,nodiratime "${runtime_name}"_"${runtime_version}".img "${mount_point}"
 
 echo "[ 3/7 ] Copying runtime to image"
 [ ! -f "${mount_point}/bin/bash" ] && {
-  sudo mkdir -p ${mount_point}/usr
-  sudo sudo cp -r ${runtime}/* ${mount_point}/usr
-  sudo ln -s usr/bin   ${mount_point}/bin
-  sudo ln -s usr/lib   ${mount_point}/lib
-  sudo ln -s usr/lib64 ${mount_point}/lib64
-  sudo ln -s usr/etc   ${mount_point}/etc
-  sudo ln -s usr/bin   ${mount_point}/sbin
-  rm -f ${mount_point}/etc/localtime
-  rm -f ${mount_point}/etc/resolv.conf
-  rm -f ${mount_point}/etc/mtab
-  rm -f ${mount_point}/etc/os-release
-  mkdir -p ${mount_point}/app
-  mkdir -p ${mount_point}/proc
-  mkdir -p ${mount_point}/dev
+  sudo mkdir -p "${mount_point}"/usr
+  sudo sudo cp -r "${runtime}"/* "${mount_point}"/usr
+  sudo ln -s usr/bin   "${mount_point}"/bin
+  sudo ln -s usr/lib   "${mount_point}"/lib
+  sudo ln -s usr/lib64 "${mount_point}"/lib64
+  sudo ln -s usr/etc   "${mount_point}"/etc
+  sudo ln -s usr/bin   "${mount_point}"/sbin
+  rm -f "${mount_point}"/etc/localtime
+  rm -f "${mount_point}"/etc/resolv.conf
+  rm -f "${mount_point}"/etc/mtab
+  rm -f "${mount_point}"/etc/os-release
+  mkdir -p "${mount_point}"/app
+  mkdir -p "${mount_point}"/proc
+  mkdir -p "${mount_point}"/dev
 }
 
-cp /etc/resolv.conf ${mount_point}/etc/resolv.conf
+cp /etc/resolv.conf "${mount_point}"/etc/resolv.conf
 
 echo "[ 4/7 ] Mounting ${1}"
-mount ${app} ${mount_point}/app -o bind,ro
+mount "${app}" "${mount_point}"/app -o bind,ro
 
 echo "[ 6/7 ] Starting chroot in ${mount_point}..."
-mount -t proc proc ${mount_point}/proc/
-mkdir -p ${mount_point}/${HOME}
+mount -t proc proc "${mount_point}"/proc/
+mkdir -p "${mount_point}"/"${HOME}"
 xhost +local:
 
 echo "[ 7/7 ] Copying used files..."
 command_path="${mount_point}/app/bin/${command}"
-[ "$(cat ${command_path} | head -n1 | cut -c 1-2)" = "#!" ] && {
-  interpreter=$(cat ${command_path} | head -n1 | cut -c 3-)
+[ "$(cat "${command_path}" | head -n1 | cut -c 1-2)" = "#!" ] && {
+  interpreter=$(cat "${command_path}" | head -n1 | cut -c 3-)
 }
 
 export PATH=/app/bin:/usr/bin:${PATH}
@@ -102,76 +102,76 @@ export XDG_DATA_DIRS=/app/share/:/usr/share/:"${XDG_DATA_DIRS}"
 export NO_AT_BRIDGE=1
 export $(dbus-launch)
   
-touch ${mount_point}/test
+touch "${mount_point}"/test
 
-for lib in ${libexecs[@]}; do
-  chroot ${mount_point} /usr/libexec/${lib} &
+for lib in "${libexecs[@]}"; do
+  chroot "${mount_point}" /usr/libexec/"${lib}" &
   APID=$!
   sleep 2
   kill $APID
 done
 
-chroot ${mount_point} ${command} &
+chroot "${mount_point}" "${command}" &
                         
 APID=$!
 sleep 15
 kill $APID
-kill $DBUS_SESSION_BUS_PID
-mkdir -p ${1}.AppDir/usr
-find ${mount_point} -mindepth 3 -anewer ${mount_point}/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
+kill "$DBUS_SESSION_BUS_PID"
+mkdir -p "${1}".AppDir/usr
+find "${mount_point}" -mindepth 3 -anewer "${mount_point}"/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
 
 [ -f "${1}.AppDir/${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache" ] && {
-  cp --parents -r /${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/* ${1}.AppDir
+  cp --parents -r /"${mount_point}"/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/* "${1}".AppDir
 }
 
 [ -d "${1}.AppDir/${mount_point}/usr/lib/python3.7/" ] && {
-  cp --parents /${mount_point}/usr/lib/python3.7/__pycache__/struct.cpython-37.pyc ${1}.AppDir
-  cp --parents /${mount_point}/usr/lib/python3.7/__pycache__/copy.cpython-37.pyc ${1}.AppDir
-  cp --parents /${mount_point}/usr/lib/python3.7/struct.py ${1}.AppDir
-  cp --parents /${mount_point}/usr/lib/python3.7/lib-dynload/_struct.cpython-37m-x86_64-linux-gnu.so ${1}.AppDir
-  cp --parents /${mount_point}/usr/lib/python3.7/copy.py ${1}.AppDir
+  cp --parents /"${mount_point}"/usr/lib/python3.7/__pycache__/struct.cpython-37.pyc "${1}".AppDir
+  cp --parents /"${mount_point}"/usr/lib/python3.7/__pycache__/copy.cpython-37.pyc "${1}".AppDir
+  cp --parents /"${mount_point}"/usr/lib/python3.7/struct.py "${1}".AppDir
+  cp --parents /"${mount_point}"/usr/lib/python3.7/lib-dynload/_struct.cpython-37m-x86_64-linux-gnu.so "${1}".AppDir
+  cp --parents /"${mount_point}"/usr/lib/python3.7/copy.py "${1}".AppDir
 }
 
 [ -d "${1}.AppDir/${mount_point}/usr/lib/python3.7/encodings" ] && {
-  cp --parents -r /${mount_point}/usr/lib/python3.7/encodings/* ${1}.AppDir
+  cp --parents -r /"${mount_point}"/usr/lib/python3.7/encodings/* "${1}".AppDir
 }
 
-mv ${1}.AppDir/${mount_point}/* ${1}.AppDir/
-rm -rf ${1}.AppDir/tmp
-ln -s usr/bin   ${1}.AppDir/bin
-ln -s usr/lib   ${1}.AppDir/lib
-ln -s usr/lib64 ${1}.AppDir/lib64
-ln -s usr/etc   ${1}.AppDir/etc
-ln -s usr/bin   ${1}.AppDir/sbin
-cp ${HERE}/libunionpreload.so ${1}.AppDir
-cp ${HERE}/AppRun ${1}.AppDir
+mv "${1}".AppDir/"${mount_point}"/* "${1}".AppDir/
+rm -rf "${1}".AppDir/tmp
+ln -s usr/bin   "${1}".AppDir/bin
+ln -s usr/lib   "${1}".AppDir/lib
+ln -s usr/lib64 "${1}".AppDir/lib64
+ln -s usr/etc   "${1}".AppDir/etc
+ln -s usr/bin   "${1}".AppDir/sbin
+cp "${HERE}"/libunionpreload.so "${1}".AppDir
+cp "${HERE}"/AppRun "${1}".AppDir
 
-[ ! -z "${interpreter}" ] && {
-  echo -n ${interpreter} >> ${1}.AppDir/interpreter
+[ ! "${interpreter}" = "" ] && {
+  echo -n "${interpreter}" >> "${1}".AppDir/interpreter
 }
 
-echo -n ${command} >> ${1}.AppDir/command
+echo -n "${command}" >> "${1}".AppDir/command
 
-mv ${1}.AppDir/usr/share/glib-2.0/schemas ${1}.AppDir/usr/share/runtime-schemas
-cp -r ${mount_point}/app/* ${1}.AppDir/usr
-ln -s usr ${1}.AppDir/app
+mv "${1}".AppDir/usr/share/glib-2.0/schemas "${1}".AppDir/usr/share/runtime-schemas
+cp -r "${mount_point}"/app/* "${1}".AppDir/usr
+ln -s usr "${1}".AppDir/app
 
-cp ${1}.AppDir/usr/share/applications/${1}.desktop ${1}.AppDir/
-ln -s app/share/app-info/icons/flatpak/128x128/${1}.png ${1}.AppDir/
+cp "${1}".AppDir/usr/share/applications/"${1}".desktop "${1}".AppDir/
+ln -s app/share/app-info/icons/flatpak/128x128/"${1}".png "${1}".AppDir/
 
-sed -i -e 's|DBusActivatable|X-DBusActivatable|g' ${1}.AppDir/${1}.desktop
-sed -i -e 's|Keywords|X-Keywords|g' ${1}.AppDir/${1}.desktop
+sed -i -e 's|DBusActivatable|X-DBusActivatable|g' "${1}".AppDir/"${1}".desktop
+sed -i -e 's|Keywords|X-Keywords|g' "${1}".AppDir/"${1}".desktop
 
-cp -f /${mount_point}/usr/share/mime/mime.cache ${1}.AppDir/usr/share/mime/mime.cache
+cp -f /"${mount_point}"/usr/share/mime/mime.cache "${1}".AppDir/usr/share/mime/mime.cache
 
-rm -rf ${1}.AppDir/usr/share/locale
-rm -rf ${1}.AppDir/usr/share/fonts
-rm -rf ${1}.AppDir/usr/cache
+rm -rf "${1}".AppDir/usr/share/locale
+rm -rf "${1}".AppDir/usr/share/fonts
+rm -rf "${1}".AppDir/usr/cache
 
-mkdir -p ${1}.AppDir/usr/share/locale
+mkdir -p "${1}".AppDir/usr/share/locale
 
-for locale in /var/lib/flatpak/runtime/${1}.Locale/x86_64/stable/active/files/*/; do
-  cp -rf $locale/share/*  ${1}.AppDir/usr/share/locale
+for locale in "/var/lib/flatpak/runtime/${1}.Locale/x86_64/stable/active/files/"*/; do
+  cp -rf "$locale"/share/*  "${1}".AppDir/usr/share/locale
 done
 
 [ -f "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk.css" ] && {
@@ -180,21 +180,21 @@ done
   echo -e "\n${theme_string}\n" >> "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk-dark.css"
 }
 
-for lib in ${libexecs[@]}; do
-  echo $lib
-  mv ${1}.AppDir/usr/libexec/${lib} ${1}.AppDir/usr/libexec/${lib}.orig
-  cp ${HERE}/bin-wrap ${1}.AppDir/usr/libexec/${lib}
+for lib in "${libexecs[@]}"; do
+  echo "$lib"
+  mv "${1}".AppDir/usr/libexec/"${lib}" "${1}".AppDir/usr/libexec/"${lib}".orig
+  cp "${HERE}"/bin-wrap "${1}".AppDir/usr/libexec/"${lib}"
 done
 
-chmod -R a+rwx ${1}.AppDir/
+chmod -R a+rwx "${1}".AppDir/
 
 echo "[ 7/7 ] Finishing..."
 sleep 1
 sync
 sleep 1
 # umount -l ${mount_point}
-umount -l ${mount_point}/app
-umount -l ${mount_point}/proc
-umount -l ${mount_point}
+umount -l "${mount_point}"/app
+umount -l "${mount_point}"/proc
+umount -l "${mount_point}"
 
-rm -rfv ${mount_point}
+rm -rfv "${mount_point}"
