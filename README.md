@@ -1,5 +1,5 @@
 # flatpak2appdir
-A proof of concept to demonstrate a viable way to turn a Flatpak into AppDir, just pass a flatpak app as argument and this tool generate 
+A tool for converting flatpaks into AppImages
 
 # How to use?
 
@@ -24,23 +24,25 @@ cd flatpak2appdir-master
 chmod +x flatpak2appdir
 ```
 
-5. Run as root:
+5. Run:
 ```
-sudo ./flatpak2appdir com.example.app
+./flatpak2appdir com.example.app
 ```
-> Note: to do these steps `flatpak2appdir` will create a `.img` file with the runtime name, you can delete this **after** AppDir creation
-# How to use?
 
-It's working by chrooting under `runtime` of `app` and  mapping used files using `strictatime` and `nodiratime` and copying to AppDir
+# Commandline option:
+
+```
+--executable=cmd    Scan for dependencies of 'cmd'
+--autostop=time     Define how long executables will be traced
+--help              Show this help
+
+Notes:
+  ¹ --executable= Can be used multiple times
+  ² The default value for --autostop= is 25,
+    the time is given in seconds
+```
 
 # How much overhead on the resulting AppDir?
 
-In general, about 8 to 10 MB, the resulting AppDir when and if sanitized and compressed as AppImage in my tests will use disk space close to that of the original application without the main runtime (application files + ostree objects)
+In general, about 8 to 10 MB (the glibc and some extra libs), the resulting AppDir when compressed as AppImage in my tests will use disk space close to that of the original application (in most of cases)
 
-# Missing features
-This is a PoC, so it has a large list of missing features:
-- [ ] Find executable dinamically (currently generated AppRun only looks at /app/bin)
-- [x] Support non binary apps
-- [x] Enable `dconf` and `dbus` during test phase
-- [x] Support to apps that depends of libexecs but doesn't load them automatically
-- [x] Support no required `runtimes`
