@@ -21,7 +21,7 @@ cd flatpak2appdir-master
 
 4. Turn executable:
 ```
-chmod +x flatpak2appdir
+chmod +x flatpak2appdir strace-file appimagetool
 ```
 
 5. Run:
