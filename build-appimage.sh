@@ -6,9 +6,4 @@ sudo flatpak install -v --noninteractive --system flathub $1.Locale || {
   sudo flatpak install -v --noninteractive --system flathub $1.Locale || true
 }
 sudo flatpak install -v --noninteractive --system flathub $1
-sudo ./flatpak2appdir $1
-
-export VERSION=$(LANG=en flatpak info $ID | sed 's/^[[:space:]]*//'  | grep -i ^Version: | cut -c 10-)
-
-./appimagetool-*.AppImage ./*.AppDir
-rm ./appimagetool-*.AppImage
+./flatpak2appdir $1

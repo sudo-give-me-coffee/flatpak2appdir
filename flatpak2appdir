@@ -1,200 +1,213 @@
 #!/bin/bash
 
+unset LANG
 HERE="$(dirname "$(readlink -f "${0}")")"
 
-[ "${1}" = "--force-runtime" ] && {
-  shift
-  runtime_name=${1}; shift
-  runtime_version=${1}; shift
+function deploy(){
+  FILES=("$(timeout "${TIMER}" flatpak run --filesystem="${HERE}" --command="${HERE}/strace-file" \
+                                  --allow=devel "${app}" \
+                                  --appimage-extract-and-run -e -s "${1}" \
+                                  | sort | uniq | grep -v ^/app/ )")
+
+  echo "Copying used files from runtime by '${1}'..."
+  for file in ${FILES[@]}; do
+    flatpak run --filesystem="$(pwd)" --command=cp \
+                --allow=devel "${app}" -n --parents "${file}" . 2>&1 | \
+                grep -Ev "not specified|cannot stat|not a directory" # We don't need care about directory and missing files
+  done
 }
 
-[[ "${1}" == "--libexec="* ]] && {
-  libexecs=($(echo "${1}" | cut -c 11- | sed "s/,/\n/g"))
-  shift
+function help(){
+  echo "usage: flatpak2appdir [--executable=] [APPID]"
+  echo
+  echo "Description:"
+  echo "  Transform a Flatpak application into an AppImage by"
+  echo "  tracking accessed files by executables"
+  echo
+  echo "Options:"
+  echo "  --executable=cmd  Scan for dependencies of 'cmd'"
+  echo "  --autostop=time   Define how long executables will be traced"
+  echo "  --disable-theme   Disables theme integration"
+  echo "  --help            Show this help"
+  echo
+  echo "Notes:"
+  echo "  ¹ --executable= Can be used multiple times"
+  echo "  ² The default value for --autostop= is 25,"
+  echo "    the time is given in seconds"
+  echo "  ³ This tool has no intention of discouraging the"
+  echo "    use of flatpaks"
+  echo
+  exit 0
 }
+
+for arg in "${@}"; do
+  echo "${arg}" | grep -q ^"--executable=" && {
+    shift
+    additional_exes+=("$(echo "${arg}" | cut -c 14-)")
+  }
+  echo "${arg}" | grep -q ^"--autostop=" && {
+    shift
+    TIMER="$(echo "${arg}" | cut -c 12-)"
+    export TIMER
+  }
+  echo "${arg}" | grep -qE ^"-h|--help"$ && {
+    help
+    exit 0
+  }
+  echo "${arg}" | grep -q ^"--disable-theme"$ && {
+    shift
+    export THEME="export GTK_THEME=$(mktemp -u)"
+  }
+done
 
 [ "${1}" = "" ] && {
-  echo "You must pass a app id as argument for e.g.:"
-  echo "  sudo ${0} org.gnome.gedit"
+  echo "flatpak2appdir: must have at least PROG [ARGS]" 1>&2
+  echo "Try 'flatpak2appdir -h' for more information." 1>&2
   exit 1
 }
 
-[ "$EUID" -ne 0 ] && {
-  echo "Please run as root:"
-  echo "  sudo ${0} ${1}"
-  exit 1
+[ "${TIMER}" = "" ] && export TIMER=25
+
+app=${1}
+
+echo "Starting application..."
+
+command=$(flatpak run --filesystem="$(pwd)" \
+                      --command=cat "${app}" /app/manifest.json | \
+                      grep ^'  "command"' | cut -d\" -f4)
+
+mkdir -p "${app}.AppDir"
+cd       "${app}.AppDir" || exit
+                      
+additional_exes+=("${command}")
+
+for executable in "${additional_exes[@]}"; do
+  deploy "${executable}"
+done
+
+echo "Copying /app files..."
+flatpak run --filesystem="$(pwd)" --command=cp --allow=devel "${app}" -r --parents "/app/" . 
+
+# We need bundle gdk-pixbuf loaders
+PIBXBUX_LOADER_PATH="usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0"
+[ -f "usr/lib/x86_64-linux-gnu/libgdk_pixbuf-2.0.so.0" ] && {
+  flatpak run --filesystem="$(pwd)" \
+              --command=cp \
+              --allow=devel "${app}" -r --parents "/${PIBXBUX_LOADER_PATH}"/* . 
+}
+ 
+# We need make sure that python will find some essential files
+[ -d "usr/lib/python3.7/" ] && {
+  CPYTHON_ESSENTIAL_FILES+=("/usr/lib/python3.7/__pycache__/struct.cpython-37.pyc")
+  CPYTHON_ESSENTIAL_FILES+=("/usr/lib/python3.7/__pycache__/copy.cpython-37.pyc")
+  CPYTHON_ESSENTIAL_FILES+=("/usr/lib/python3.7/struct.py")
+  CPYTHON_ESSENTIAL_FILES+=("/usr/lib/python3.7/lib-dynload/_struct.cpython-37m-x86_64-linux-gnu.so")
+  CPYTHON_ESSENTIAL_FILES+=("/usr/lib/python3.7/copy.py")
+  CPYTHON_ESSENTIAL_FILES+=("/usr/lib/python3.7/fnmatch.py")
+  for file in "${CPYTHON_ESSENTIAL_FILES[@]}"; do
+    flatpak run --filesystem="$(pwd)" \
+                --command=cp \
+                --allow=devel "${app}" --parents "${file}" .
+  done
 }
 
-
-[ ! -f "/var/lib/flatpak/app/${1}/current/active/files/manifest.json" ] && {
-  echo "Error: ${1} not installed on system wide, please run:"
-  echo "  flatpak install --system ${1}"
-  exit 1
+[ -d "usr/lib/python3.7/encodings" ] && {
+  flatpak run --filesystem="$(pwd)" \
+              --command=cp \
+              --allow=devel "${app}" -r --parents "/usr/lib/python3.7/encodings" . 
 }
 
-[ "${runtime_name}" = ""  ] && {
-  runtime_info=$(cat "/var/lib/flatpak/app/${1}/current/active/files/manifest.json" | grep runtime   \
-                                                                                    | sed 's/ *"//g' \
-                                                                                    | cut -d':' -f2  \
-                                                                                    | rev)
-
-  runtime_name=$(echo "${runtime_info}"    | sed -n 1p | cut -c 2- | rev)
-  runtime_version=$(echo "${runtime_info}" | sed -n 2p | cut -c 2- | rev)
+# If we bundle libfontconfig, we need to bundle config files too
+[ -f "usr/lib/x86_64-linux-gnu/libfontconfig.so.1" ] && {
+  flatpak run --filesystem="$(pwd)" \
+              --command=cp \
+              --allow=devel "${app}" -r --parents "/etc/fonts" .
 }
+
+# Fixes black borders around elementary OS apps outside Pantheon Shell
+[ -f "app/share/themes/elementary/gtk-3.0/gtk.css" ] && {
+  theme_string+=(".titlebar { border-radius: 0;}")
+  theme_string+=("decoration {border-radius:0;box-shadow:none;margin:0;border:1px solid @theme_bg_color;}")
+  echo -e "\n${theme_string[*]}\n" >> app/share/themes/elementary/gtk-3.0/gtk.css
+  echo -e "\n${theme_string[*]}\n" >> app/share/themes/elementary/gtk-3.0/gtk-dark.css
+}
+
+[ -f "usr/lib/python3.7/encodings" ] && {
+  flatpak run --filesystem="$(pwd)" \
+              --command=cp \
+              --allow=devel "${app}" -r --parents "/usr/lib/python3.7/encodings"/* . 
+}
+
+# Bundle glib-2.0 schemas
+flatpak run --filesystem="$(pwd)" \
+            --command=cp \
+            --allow=devel "${app}" --parents "/usr/share/glib-2.0/schemas/gschemas.compiled" . 
+
+cp -rf usr/lib/ .
+
+# Get App descriptor
+cp -rf app/share/appdata usr
+
+rm -rf usr/share/locale
+rm -rf usr/share/fonts
+rm -rf usr/cache
+
+cat > AppRun <<\EOF
+  #!/usr/bin/env bash
+
+  export HERE="$(dirname "$(readlink -f "${0}")")"
+
+  function onExit(){
+    echo "Finishing..."
+    killall "${HERE}/unionfs"
+    sleep 1
+    rm -rf "${HERE}.SYS_ROOT"
+  }
+
+  trap "onExit" EXIT
+
+  export PATH="/app/bin:${PATH}"
+  export LD_LIBRARY_PATH="/app/lib:${LD_LIBRARY_PATH}"
+  export LD_LIBRARY_PATH="/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
+  export XDG_CONFIG_DIRS="/app/etc/xdg:${XDG_CONFIG_DIRS}"
+  export XDG_DATA_DIRS="/app/share:${XDG_DATA_DIRS}"
+  export GI_TYPELIB_PATH=$HERE/app/lib/girepository-1.0
   
-app="/var/lib/flatpak/app/${1}/current/active/files/"
-runtime="/var/lib/flatpak/runtime/${runtime_name}/x86_64/${runtime_version}/active/files"
-command="$(cat /var/lib/flatpak/app/"${1}"/current/active/metadata | grep ^command= | cut -c 9-)"
-image_size=$(( 200 + $(du -ms "${runtime}"| sed 's/[[:space:]]/ /g' | cut -d' ' -f1) ))
-
-echo "[ 1/7 ] Create image for store runtime"
-[ ! -f "${runtime_name}_${runtime_version}.img" ] && {
-  echo
-  dd if=/dev/zero of="${runtime_name}"_"${runtime_version}".img bs=1M count="${image_size}"
-  mkfs.ext4 "${runtime_name}"_"${runtime_version}".img
-  chmod 777 "${runtime_name}"_"${runtime_version}".img
-  chmod -x  "${runtime_name}"_"${runtime_version}".img
-}
-
-echo "[ 2/7 ] Mounting runtime image"
-mount_point="$(mktemp -d)"
-sudo mount -o loop,strictatime,nodiratime "${runtime_name}"_"${runtime_version}".img "${mount_point}"
-
-echo "[ 3/7 ] Copying runtime to image"
-[ ! -f "${mount_point}/bin/bash" ] && {
-  sudo mkdir -p "${mount_point}"/usr
-  sudo sudo cp -r "${runtime}"/* "${mount_point}"/usr
-  sudo ln -s usr/bin   "${mount_point}"/bin
-  sudo ln -s usr/lib   "${mount_point}"/lib
-  sudo ln -s usr/lib64 "${mount_point}"/lib64
-  sudo ln -s usr/etc   "${mount_point}"/etc
-  sudo ln -s usr/bin   "${mount_point}"/sbin
-  rm -f "${mount_point}"/etc/localtime
-  rm -f "${mount_point}"/etc/resolv.conf
-  rm -f "${mount_point}"/etc/mtab
-  rm -f "${mount_point}"/etc/os-release
-  mkdir -p "${mount_point}"/app
-  mkdir -p "${mount_point}"/proc
-  mkdir -p "${mount_point}"/dev
-}
-
-cp /etc/resolv.conf "${mount_point}"/etc/resolv.conf
-
-echo "[ 4/7 ] Mounting ${1}"
-mount "${app}" "${mount_point}"/app -o bind,ro
-
-echo "[ 6/7 ] Starting chroot in ${mount_point}..."
-mount -t proc proc "${mount_point}"/proc/
-mkdir -p "${mount_point}"/"${HOME}"
-xhost +local:
-
-echo "[ 7/7 ] Copying used files..."
-command_path="${mount_point}/app/bin/${command}"
-[ "$(cat "${command_path}" | head -n1 | cut -c 1-2)" = "#!" ] && {
-  interpreter=$(cat "${command_path}" | head -n1 | cut -c 3-)
-}
-
-export PATH=/app/bin:/usr/bin:${PATH}
-export LD_LIBRARY_PATH=/app/bin:/app/lib:${LD_LIBRARY_PATH}
-export GSETTINGS_SCHEMA_DIR=/app/share/glib-2.0/schemas
-export GI_TYPELIB_PATH=/app/lib/girepository-1.0
-export XDG_DATA_DIRS=/app/share/:/usr/share/:"${XDG_DATA_DIRS}"
-export NO_AT_BRIDGE=1
-export $(dbus-launch)
+  unset GTK_MODULES
+  export GCONV_PATH="$HERE/usr/lib/x86_64-linux-gnu/gconv"
+  §theme§
   
-touch "${mount_point}"/test
+  echo "Creating mount point..."
+  mkdir -p "${HERE}.SYS_ROOT"
+  
+  echo "Starting proot..."
+  "${HERE}/unionfs" -o cow "${HERE}"=RO:/=RW "${HERE}.SYS_ROOT"
+  proot -R "${HERE}.SYS_ROOT" §command§ ${@}
+  
+EOF
+                                              
+sed -i "s|^.\{2\}||g;s|§command§|${command}|g;s|§theme§|${THEME}|g" AppRun
 
-for lib in "${libexecs[@]}"; do
-  chroot "${mount_point}" /usr/libexec/"${lib}" &
-  APID=$!
-  sleep 2
-  kill $APID
-done
 
-chroot "${mount_point}" "${command}" &
-                        
-APID=$!
-sleep 15
-kill $APID
-kill "$DBUS_SESSION_BUS_PID"
-mkdir -p "${1}".AppDir/usr
-find "${mount_point}" -mindepth 3 -anewer "${mount_point}"/test -not -path '*/proc/*' -not -path '*/home/*' | sed 's/^/cp -P --parents /g' | sed "s|$| ${1}.AppDir|g" | sh
+cp "${HERE}/unionfs" .
+cp "${HERE}/proot" .
 
-[ -f "${1}.AppDir/${mount_point}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache" ] && {
-  cp --parents -r /"${mount_point}"/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/* "${1}".AppDir
-}
+chmod +x AppRun proot unionfs
 
-[ -d "${1}.AppDir/${mount_point}/usr/lib/python3.7/" ] && {
-  cp --parents /"${mount_point}"/usr/lib/python3.7/__pycache__/struct.cpython-37.pyc "${1}".AppDir
-  cp --parents /"${mount_point}"/usr/lib/python3.7/__pycache__/copy.cpython-37.pyc "${1}".AppDir
-  cp --parents /"${mount_point}"/usr/lib/python3.7/struct.py "${1}".AppDir
-  cp --parents /"${mount_point}"/usr/lib/python3.7/lib-dynload/_struct.cpython-37m-x86_64-linux-gnu.so "${1}".AppDir
-  cp --parents /"${mount_point}"/usr/lib/python3.7/copy.py "${1}".AppDir
-}
+flatpak run --filesystem="$(pwd)" --command=cp \
+            --allow=devel "${app}" "/app/share/app-info/icons/flatpak/128x128/${app}.png" . 
+            
+flatpak run --filesystem="$(pwd)" --command=cp \
+            --allow=devel "${app}" "/app/share/applications/${app}.desktop" . 
+            
+# Let's patch desktop file to  make it compatible with FreeDesktop standard
 
-[ -d "${1}.AppDir/${mount_point}/usr/lib/python3.7/encodings" ] && {
-  cp --parents -r /"${mount_point}"/usr/lib/python3.7/encodings/* "${1}".AppDir
-}
+sed -i -e "s|DBusActivatable|X-DBusActivatable|g;s|Keywords|X-Keywords|g" "${app}.desktop"
 
-mv "${1}".AppDir/"${mount_point}"/* "${1}".AppDir/
-rm -rf "${1}".AppDir/tmp
-ln -s usr/bin   "${1}".AppDir/bin
-ln -s usr/lib   "${1}".AppDir/lib
-ln -s usr/lib64 "${1}".AppDir/lib64
-ln -s usr/etc   "${1}".AppDir/etc
-ln -s usr/bin   "${1}".AppDir/sbin
-cp "${HERE}"/libunionpreload.so "${1}".AppDir
-cp "${HERE}"/AppRun "${1}".AppDir
+echo "Finished!"
 
-[ ! "${interpreter}" = "" ] && {
-  echo -n "${interpreter}" >> "${1}".AppDir/interpreter
-}
+echo "Creating AppImage..."
+cd ..
+"${HERE}/appimagetool" --appimage-extract-and-run --no-appstream "${app}".AppDir
 
-echo -n "${command}" >> "${1}".AppDir/command
 
-mv "${1}".AppDir/usr/share/glib-2.0/schemas "${1}".AppDir/usr/share/runtime-schemas
-cp -r "${mount_point}"/app/* "${1}".AppDir/usr
-ln -s usr "${1}".AppDir/app
-
-cp "${1}".AppDir/usr/share/applications/"${1}".desktop "${1}".AppDir/
-ln -s app/share/app-info/icons/flatpak/128x128/"${1}".png "${1}".AppDir/
-
-sed -i -e 's|DBusActivatable|X-DBusActivatable|g' "${1}".AppDir/"${1}".desktop
-sed -i -e 's|Keywords|X-Keywords|g' "${1}".AppDir/"${1}".desktop
-
-cp -f /"${mount_point}"/usr/share/mime/mime.cache "${1}".AppDir/usr/share/mime/mime.cache
-
-rm -rf "${1}".AppDir/usr/share/locale
-rm -rf "${1}".AppDir/usr/share/fonts
-rm -rf "${1}".AppDir/usr/cache
-
-mkdir -p "${1}".AppDir/usr/share/locale
-
-for locale in "/var/lib/flatpak/runtime/${1}.Locale/x86_64/stable/active/files/"*/; do
-  cp -rf "$locale"/share/*  "${1}".AppDir/usr/share/locale
-done
-
-[ -f "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk.css" ] && {
-  theme_string=".titlebar { border-radius: 0; } decoration { border-radius: 0; box-shadow: none; margin:0; border: 1px solid @theme_bg_color;}"
-  echo -e "\n${theme_string}\n" >> "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk.css"
-  echo -e "\n${theme_string}\n" >> "${1}.AppDir/usr/share/themes/elementary/gtk-3.0/gtk-dark.css"
-}
-
-for lib in "${libexecs[@]}"; do
-  echo "$lib"
-  mv "${1}".AppDir/usr/libexec/"${lib}" "${1}".AppDir/usr/libexec/"${lib}".orig
-  cp "${HERE}"/bin-wrap "${1}".AppDir/usr/libexec/"${lib}"
-done
-
-chmod -R a+rwx "${1}".AppDir/
-
-echo "[ 7/7 ] Finishing..."
-sleep 1
-sync
-sleep 1
-# umount -l ${mount_point}
-umount -l "${mount_point}"/app
-umount -l "${mount_point}"/proc
-umount -l "${mount_point}"
-
-rm -rfv "${mount_point}"
