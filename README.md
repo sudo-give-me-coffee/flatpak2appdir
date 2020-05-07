@@ -34,7 +34,7 @@ chmod +x flatpak2appdir
 ```
 --executable=cmd    Scan for dependencies of 'cmd'
 --autostop=time     Define how long executables will be traced
---help              Show this help
+--disable-theme     Disables theme integration
 
 Notes:
   ¹ --executable= Can be used multiple times

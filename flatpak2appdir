@@ -27,6 +27,7 @@ function help(){
   echo "Options:"
   echo "  --executable=cmd  Scan for dependencies of 'cmd'"
   echo "  --autostop=time   Define how long executables will be traced"
+  echo "  --disable-theme   Disables theme integration"
   echo "  --help            Show this help"
   echo
   echo "Notes:"
@@ -52,6 +53,10 @@ for arg in "${@}"; do
   echo "${arg}" | grep -qE ^"-h|--help"$ && {
     help
     exit 0
+  }
+  echo "${arg}" | grep -q ^"--disable-theme"$ && {
+    shift
+    export THEME="export GTK_THEME=$(mktemp -u)"
   }
 done
 
@@ -170,6 +175,7 @@ cat > AppRun <<\EOF
   
   unset GTK_MODULES
   export GCONV_PATH="$HERE/usr/lib/x86_64-linux-gnu/gconv"
+  §theme§
   
   echo "Creating mount point..."
   mkdir -p "${HERE}.SYS_ROOT"
@@ -180,7 +186,8 @@ cat > AppRun <<\EOF
   
 EOF
                                               
-sed -i "s|^.\{2\}||g;s|§command§|${command}|g" AppRun
+sed -i "s|^.\{2\}||g;s|§command§|${command}|g;s|§theme§|${THEME}|g" AppRun
+
 
 cp "${HERE}/unionfs" .
 cp "${HERE}/proot" .
