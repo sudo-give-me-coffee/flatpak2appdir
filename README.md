@@ -3,6 +3,23 @@ A tool for converting flatpaks into AppImages
 
 # How to use?
 
+0. Make sure that flatpak ins installead and not broken under your system:
+```bash
+# For Ubuntu:
+sudo add-apt-repository -y ppa:alexlarsson/flatpak
+sudo apt-get update
+sudo apt-get -y  install flatpak
+
+# For other systems, please see:
+# https://flatpak.org/setup/
+
+# Is recommended  to add flathub for getting runtimes
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+```
+> Notes: your application **must be able to run** with `flatpak run your.app.id`
+> If flatpak is broken the tool will be fail
+
 1. Download
 ```
 wget https://github.com/sudo-give-me-coffee/flatpak2appdir/archive/master.zip -O flatpak2appdir.zip
