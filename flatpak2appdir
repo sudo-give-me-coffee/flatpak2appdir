@@ -208,6 +208,8 @@ echo "Finished!"
 
 echo "Creating AppImage..."
 cd ..
+
+export VERSION=$(echo -n $(flatpak info org.gnome.gedit | grep Version: | cut -d\: -f2))
 "${HERE}/appimagetool" --appimage-extract-and-run --no-appstream "${app}".AppDir
 
 
