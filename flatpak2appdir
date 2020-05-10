@@ -166,7 +166,7 @@ cat > AppRun <<\EOF
 
   trap "onExit" EXIT
 
-  export PATH="/app/bin:${PATH}"
+  export PATH="/app/bin:${HERE}:${PATH}"
   export LD_LIBRARY_PATH="/app/lib:${LD_LIBRARY_PATH}"
   export LD_LIBRARY_PATH="/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
   export XDG_CONFIG_DIRS="/app/etc/xdg:${XDG_CONFIG_DIRS}"
@@ -182,7 +182,7 @@ cat > AppRun <<\EOF
   
   echo "Starting proot..."
   "${HERE}/unionfs" -o cow "${HERE}"=RO:/=RW "${HERE}.SYS_ROOT"
-  proot -R "${HERE}.SYS_ROOT" §command§ ${@}
+  "${HERE}/proot" -R "${HERE}.SYS_ROOT" §command§ ${@}
   
 EOF
                                               
